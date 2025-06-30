@@ -12,6 +12,7 @@ import TempAdmin from "@/pages/temp-admin";
 import Dashboard from "@/pages/dashboard";
 import UserManagement from "@/pages/user-management";
 import CreateUser from "@/pages/create-user";
+import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -47,6 +48,12 @@ function Router() {
       <Route path="/users/create">
         <ProtectedRoute requiredRoles={['admin']}>
           <CreateUser />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/settings">
+        <ProtectedRoute>
+          <Settings />
         </ProtectedRoute>
       </Route>
 

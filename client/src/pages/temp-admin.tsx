@@ -189,11 +189,9 @@ export default function TempAdmin() {
               </Button>
 
               <div className="text-center">
-                <Link href="/login">
-                  <a className="text-sm text-slate-600 hover:text-slate-800 transition-colors inline-flex items-center">
-                    <ArrowLeft className="h-4 w-4 mr-1" />
-                    Back to Login
-                  </a>
+                <Link href="/login" className="text-sm text-slate-600 hover:text-slate-800 transition-colors inline-flex items-center">
+                  <ArrowLeft className="h-4 w-4 mr-1" />
+                  Back to Login
                 </Link>
               </div>
             </form>

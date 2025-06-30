@@ -110,10 +110,8 @@ export default function Login() {
               </Button>
 
               <div className="text-center">
-                <Link href="/temp-admin">
-                  <a className="text-sm text-primary hover:text-blue-500 transition-colors">
-                    First time setup? Create admin user
-                  </a>
+                <Link href="/temp-admin" className="text-sm text-primary hover:text-blue-500 transition-colors">
+                  First time setup? Create admin user
                 </Link>
               </div>
             </form>
