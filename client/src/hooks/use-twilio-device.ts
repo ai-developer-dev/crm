@@ -104,25 +104,52 @@ export function useTwilioDevice() {
         }));
 
         // Set up call event listeners
-        call.on('accept', () => {
+        call.on('accept', async () => {
           setCallState(prev => ({ 
             ...prev, 
             activeCall: { ...incomingCallData, status: 'answered' },
             incomingCall: null 
           }));
+          
+          // Update user call status in database
+          if (user?.id) {
+            try {
+              await apiRequest('PUT', `/api/users/${user.id}/call-status`, {
+                callSid: incomingCallData.callSid,
+                callerNumber: incomingCallData.from,
+                direction: 'inbound',
+                startTime: incomingCallData.timestamp.toISOString()
+              });
+            } catch (error) {
+              console.error('Failed to update call status:', error);
+            }
+          }
+          
           toast({
             title: "Call Answered",
             description: `Connected to ${incomingCallData.from}`,
           });
         });
 
-        call.on('disconnect', () => {
+        call.on('disconnect', async () => {
           currentCallRef.current = null;
           setCallState(prev => ({ 
             ...prev, 
             activeCall: null,
             incomingCall: null 
           }));
+          
+          // Clear user call status in database
+          if (user?.id) {
+            try {
+              await apiRequest('PUT', `/api/users/${user.id}/call-status`, {
+                endCall: true
+              });
+            } catch (error) {
+              console.error('Failed to clear call status:', error);
+            }
+          }
+          
           toast({
             title: "Call Ended",
             description: "Call has been disconnected",

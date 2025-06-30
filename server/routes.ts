@@ -517,6 +517,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user call status
+  app.put("/api/users/:id/call-status", authenticateToken, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { callSid, callerNumber, direction, startTime, endCall } = req.body;
+      
+      if (endCall) {
+        // Clear call status
+        const updatedUser = await storage.updateUser(userId, {
+          currentCallSid: null,
+          currentCallerNumber: null,
+          currentCallDirection: null,
+          currentCallStartTime: null,
+        });
+        
+        if (updatedUser) {
+          // Broadcast call ended event via WebSocket
+          broadcastToAll({
+            type: 'user_call_ended',
+            userId: userId,
+            message: `${updatedUser.fullName} ended their call`
+          });
+        }
+        
+        res.json({ message: "Call status cleared" });
+      } else {
+        // Set active call status
+        const updatedUser = await storage.updateUser(userId, {
+          currentCallSid: callSid,
+          currentCallerNumber: callerNumber,
+          currentCallDirection: direction,
+          currentCallStartTime: new Date(startTime),
+        });
+        
+        if (updatedUser) {
+          // Broadcast call started event via WebSocket
+          broadcastToAll({
+            type: 'user_call_started',
+            userId: userId,
+            callerNumber: callerNumber,
+            direction: direction,
+            message: `${updatedUser.fullName} answered call from ${callerNumber}`
+          });
+        }
+        
+        res.json({ message: "Call status updated", user: updatedUser });
+      }
+    } catch (error) {
+      console.error("Update call status error:", error);
+      res.status(500).json({ message: "Failed to update call status" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // WebSocket server for real-time features

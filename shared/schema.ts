@@ -14,6 +14,11 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  // Call status fields
+  currentCallSid: text("current_call_sid"),
+  currentCallerNumber: text("current_caller_number"),
+  currentCallDirection: text("current_call_direction").$type<'inbound' | 'outbound'>(),
+  currentCallStartTime: timestamp("current_call_start_time"),
 });
 
 export const userSessions = pgTable("user_sessions", {

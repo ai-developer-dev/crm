@@ -1,11 +1,13 @@
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Users, Phone, Crown, User, Shield, Wifi, WifiOff } from "lucide-react";
 import { useTwilioDevice } from "@/hooks/use-twilio-device";
-import { IncomingCallPopup, ActiveCallDisplay } from "@/components/incoming-call-popup";
+import { IncomingCallPopup } from "@/components/incoming-call-popup";
 import { useEffect } from "react";
+import { useWebSocket } from "@/hooks/use-websocket";
+import { useToast } from "@/hooks/use-toast";
 
 interface DashboardUser {
   id: number;
@@ -16,15 +18,24 @@ interface DashboardUser {
   userType: 'admin' | 'manager' | 'user';
   isActive: boolean;
   createdAt: string;
+  currentCallSid?: string | null;
+  currentCallerNumber?: string | null;
+  currentCallDirection?: 'inbound' | 'outbound' | null;
+  currentCallStartTime?: string | null;
 }
 
 export default function Dashboard() {
   const { data: users = [], isLoading } = useQuery<DashboardUser[]>({
     queryKey: ['/api/users'],
   });
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Initialize VoIP functionality
   const { callState, answerCall, rejectCall, hangUpCall } = useTwilioDevice();
+  
+  // Initialize WebSocket for real-time updates
+  const { lastMessage, isConnected } = useWebSocket();
 
   // Handle keyboard shortcuts for call management
   useEffect(() => {
@@ -43,6 +54,31 @@ export default function Dashboard() {
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [callState.incomingCall, answerCall, rejectCall]);
+
+  // Handle WebSocket call events
+  useEffect(() => {
+    if (lastMessage) {
+      switch (lastMessage.type) {
+        case 'user_call_started':
+          // Refresh user list to show call status
+          queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+          toast({
+            title: "Call Started",
+            description: lastMessage.message,
+          });
+          break;
+        
+        case 'user_call_ended':
+          // Refresh user list to clear call status
+          queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+          toast({
+            title: "Call Ended",
+            description: lastMessage.message,
+          });
+          break;
+      }
+    }
+  }, [lastMessage, queryClient, toast]);
 
   const getUserTypeColor = (userType: string) => {
     switch (userType) {
@@ -77,6 +113,25 @@ export default function Dashboard() {
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  // Format phone number for display
+  const formatPhoneNumber = (phone: string) => {
+    const cleaned = phone.replace(/^\+1/, '');
+    if (cleaned.length === 10) {
+      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+    }
+    return phone;
+  };
+
+  // Calculate call duration
+  const getCallDuration = (startTime: string) => {
+    const start = new Date(startTime);
+    const now = new Date();
+    const duration = Math.floor((now.getTime() - start.getTime()) / 1000);
+    const minutes = Math.floor(duration / 60);
+    const seconds = duration % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
   const totalUsers = users.length;
@@ -213,6 +268,26 @@ export default function Dashboard() {
                                 {user.isActive ? 'Active' : 'Inactive'}
                               </Badge>
                             </div>
+                            
+                            {/* Call Status Display */}
+                            {user.currentCallSid && user.currentCallerNumber && user.currentCallStartTime && (
+                              <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                    <span className="text-sm font-medium text-green-800">
+                                      On call with {formatPhoneNumber(user.currentCallerNumber)}
+                                    </span>
+                                  </div>
+                                  <Badge className="bg-green-100 text-green-800 text-xs">
+                                    {getCallDuration(user.currentCallStartTime)}
+                                  </Badge>
+                                </div>
+                                <div className="text-xs text-green-600 mt-1">
+                                  {user.currentCallDirection === 'inbound' ? 'Incoming' : 'Outgoing'} call
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </CardContent>
@@ -234,12 +309,7 @@ export default function Dashboard() {
         />
       )}
 
-      {callState.activeCall && (
-        <ActiveCallDisplay
-          call={callState.activeCall}
-          onHangUp={hangUpCall}
-        />
-      )}
+
     </DashboardLayout>
   );
 }
