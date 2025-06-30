@@ -652,6 +652,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } catch (error) {
             ws.send(JSON.stringify({ type: 'auth_error', message: 'Invalid token' }));
           }
+        } else if (message.type === 'call_answered_immediate') {
+          // Relay immediate call answered message to all connected clients
+          console.log('Relaying immediate call answered message to all clients');
+          broadcastToAll({
+            type: 'call_answered_immediate',
+            callSid: message.callSid,
+            answeredByUserId: message.answeredByUserId,
+            answeredByName: message.answeredByName,
+            callerNumber: message.callerNumber
+          });
         }
       } catch (error) {
         console.error('WebSocket message error:', error);

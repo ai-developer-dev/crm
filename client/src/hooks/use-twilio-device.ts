@@ -3,6 +3,7 @@ import { Device } from '@twilio/voice-sdk';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
+import { useWebSocket } from '@/hooks/use-websocket';
 
 export interface IncomingCall {
   callSid: string;
@@ -25,6 +26,7 @@ export function useTwilioDevice() {
   const { user } = useAuth();
   const { toast } = useToast();
   const deviceRef = useRef<Device | null>(null);
+  const { lastMessage, sendMessage } = useWebSocket();
   
   const [callState, setCallState] = useState<CallState>({
     isConnected: false,
@@ -111,6 +113,15 @@ export function useTwilioDevice() {
             incomingCall: null 
           }));
           
+          // Immediately broadcast call answered via WebSocket to coordinate all devices
+          sendMessage({
+            type: 'call_answered_immediate',
+            callSid: incomingCallData.callSid,
+            answeredByUserId: user?.id,
+            answeredByName: user?.fullName,
+            callerNumber: incomingCallData.from
+          });
+          
           // Update user call status in database
           if (user?.id) {
             try {
@@ -167,6 +178,19 @@ export function useTwilioDevice() {
             description: `Rejected call from ${incomingCallData.from}`,
           });
         });
+
+        call.on('cancel', () => {
+          console.log('Call canceled by Twilio (answered by another device)');
+          currentCallRef.current = null;
+          setCallState(prev => ({ 
+            ...prev, 
+            incomingCall: null 
+          }));
+          toast({
+            title: "Call Answered Elsewhere",
+            description: `Call was answered by another user`,
+          });
+        });
       });
 
       device.on('disconnect', () => {
@@ -200,6 +224,36 @@ export function useTwilioDevice() {
 
   // Store current call connection
   const currentCallRef = useRef<any>(null);
+
+  // Listen for WebSocket call coordination messages
+  useEffect(() => {
+    if (lastMessage) {
+      switch (lastMessage.type) {
+        case 'call_answered_immediate':
+          // Another user answered the call - dismiss our incoming call popup immediately
+          if (callState.incomingCall && 
+              callState.incomingCall.callSid === lastMessage.callSid &&
+              lastMessage.answeredByUserId !== user?.id) {
+            console.log(`Call answered by ${lastMessage.answeredByName}, dismissing incoming call popup immediately`);
+            setCallState(prev => ({ 
+              ...prev, 
+              incomingCall: null 
+            }));
+            
+            // Also reject the call on the Twilio device level
+            if (currentCallRef.current) {
+              currentCallRef.current.reject();
+            }
+            
+            toast({
+              title: "Call Answered Elsewhere",
+              description: `${lastMessage.answeredByName} answered the call`,
+            });
+          }
+          break;
+      }
+    }
+  }, [lastMessage, callState.incomingCall, user?.id, toast]);
 
   // Answer incoming call
   const answerCall = useCallback(() => {
