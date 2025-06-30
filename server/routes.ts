@@ -209,6 +209,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userType: user.userType,
         isActive: user.isActive,
         createdAt: user.createdAt,
+        currentCallSid: user.currentCallSid,
+        currentCallerNumber: user.currentCallerNumber,
+        currentCallDirection: user.currentCallDirection,
+        currentCallStartTime: user.currentCallStartTime,
       }));
       
       res.json(sanitizedUsers);
