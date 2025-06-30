@@ -78,9 +78,26 @@ export default function Dashboard() {
             description: lastMessage.message,
           });
           break;
+          
+        case 'call_answered':
+          // Another user answered the call - dismiss incoming call popup
+          if (callState.incomingCall && 
+              callState.incomingCall.callSid === lastMessage.callSid &&
+              lastMessage.answeredByUserId !== currentUser?.id) {
+            console.log(`Call answered by ${lastMessage.answeredByName}, dismissing incoming call popup`);
+            rejectCall(); // Dismiss the popup since another user answered
+            
+            toast({
+              title: "Call Answered",
+              description: `${lastMessage.answeredByName} answered the call`,
+            });
+          }
+          // Refresh user list to show call status
+          queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+          break;
       }
     }
-  }, [lastMessage, queryClient, toast]);
+  }, [lastMessage, queryClient, toast, callState.incomingCall, currentUser?.id, rejectCall]);
 
   const getUserTypeColor = (userType: string) => {
     switch (userType) {

@@ -581,6 +581,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             direction: direction,
             message: `${updatedUser.fullName} answered call from ${callerNumber}`
           });
+          
+          // Broadcast call answered event with call SID for other users to dismiss their popups
+          broadcastToAll({
+            type: 'call_answered',
+            callSid: callSid,
+            answeredByUserId: userId,
+            answeredByName: updatedUser.fullName,
+            callerNumber: callerNumber
+          });
         }
         
         res.json({ message: "Call status updated", user: updatedUser });

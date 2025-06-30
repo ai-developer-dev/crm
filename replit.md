@@ -135,6 +135,9 @@ This is a full-stack VoIP CRM (Customer Relationship Management) system built wi
 - `user_updated`: Broadcast when user details are modified
 - `user_deleted`: Broadcast when users are removed
 - `auth_success`/`auth_error`: Authentication status messages
+- `user_call_started`: Broadcast when a user answers a call
+- `user_call_ended`: Broadcast when a user ends a call
+- `call_answered`: Broadcast when any user answers an incoming call (used to dismiss popups on other devices)
 
 ## VoIP Calling Features
 
@@ -163,6 +166,7 @@ This is a full-stack VoIP CRM (Customer Relationship Management) system built wi
 - June 30, 2025. Added real-time WebSocket functionality for live user management updates
 - June 30, 2025. Implemented comprehensive VoIP calling system with Twilio integration
 - June 30, 2025. Added live call status display in user cards with real-time updates and multi-user support
+- June 30, 2025. Fixed call popup dismissal - when any user answers a call, other users' incoming call popups automatically disappear
 
 ## User Preferences
 
