@@ -136,10 +136,13 @@ export default function Dashboard() {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const totalUsers = users.length;
-  const activeUsers = users.filter(user => user.isActive).length;
-  const adminCount = users.filter(user => user.userType === 'admin').length;
-  const managerCount = users.filter(user => user.userType === 'manager').length;
+  // Sort users by ID to maintain consistent card positions
+  const sortedUsers = [...users].sort((a, b) => a.id - b.id);
+  
+  const totalUsers = sortedUsers.length;
+  const activeUsers = sortedUsers.filter(user => user.isActive).length;
+  const adminCount = sortedUsers.filter(user => user.userType === 'admin').length;
+  const managerCount = sortedUsers.filter(user => user.userType === 'manager').length;
 
   return (
     <DashboardLayout>
@@ -240,7 +243,7 @@ export default function Dashboard() {
               <div className="text-center py-8 text-slate-500">No users found</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {users.map((user) => {
+                {sortedUsers.map((user) => {
                   const IconComponent = getUserTypeIcon(user.userType);
                   return (
                     <Card key={user.id} className="border-2 hover:shadow-md transition-shadow">

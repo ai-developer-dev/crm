@@ -200,7 +200,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users", authenticateToken, requireRole(['admin', 'manager']), async (req, res) => {
     try {
       const users = await storage.getAllUsers();
-      const sanitizedUsers = users.map(user => ({
+      
+      // Sort users by ID to maintain consistent order
+      const sortedUsers = users.sort((a, b) => a.id - b.id);
+      
+      const sanitizedUsers = sortedUsers.map(user => ({
         id: user.id,
         fullName: user.fullName,
         email: user.email,
