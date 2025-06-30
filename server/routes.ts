@@ -196,8 +196,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all users (admin and manager only)
-  app.get("/api/users", authenticateToken, requireRole(['admin', 'manager']), async (req, res) => {
+  // Get all users (all authenticated users for call system visibility)
+  app.get("/api/users", authenticateToken, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
       
