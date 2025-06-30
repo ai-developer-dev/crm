@@ -357,11 +357,9 @@ export default function Settings() {
                             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                               Status
                             </th>
-                            {currentUser?.userType === 'admin' && (
-                              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                                Actions
-                              </th>
-                            )}
+                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                              Actions
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-slate-200">
@@ -396,109 +394,111 @@ export default function Settings() {
                                   {user.isActive ? 'Active' : 'Inactive'}
                                 </Badge>
                               </td>
-                              {currentUser?.userType === 'admin' && (
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                                  <Dialog>
-                                    <DialogTrigger asChild>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                {currentUser?.userType === 'admin' && (
+                                  <div className="flex space-x-2">
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="text-primary hover:text-blue-700"
+                                          onClick={() => setEditingUser(user)}
+                                        >
+                                          <Edit className="h-4 w-4" />
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent className="sm:max-w-md">
+                                        <DialogHeader>
+                                          <DialogTitle>Edit User</DialogTitle>
+                                        </DialogHeader>
+                                        {editingUser && (
+                                          <form onSubmit={handleUpdateUser} className="space-y-4">
+                                            <div className="grid grid-cols-2 gap-4">
+                                              <div>
+                                                <Label htmlFor="edit-fullName">Full Name</Label>
+                                                <Input
+                                                  id="edit-fullName"
+                                                  value={editingUser.fullName}
+                                                  onChange={(e) => setEditingUser(prev => prev ? { ...prev, fullName: e.target.value } : null)}
+                                                  required
+                                                />
+                                              </div>
+                                              <div>
+                                                <Label htmlFor="edit-email">Email</Label>
+                                                <Input
+                                                  id="edit-email"
+                                                  type="email"
+                                                  value={editingUser.email}
+                                                  onChange={(e) => setEditingUser(prev => prev ? { ...prev, email: e.target.value } : null)}
+                                                  required
+                                                />
+                                              </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                              <div>
+                                                <Label htmlFor="edit-phone">Phone</Label>
+                                                <Input
+                                                  id="edit-phone"
+                                                  value={editingUser.phone}
+                                                  onChange={(e) => setEditingUser(prev => prev ? { ...prev, phone: e.target.value } : null)}
+                                                  required
+                                                />
+                                              </div>
+                                              <div>
+                                                <Label htmlFor="edit-extension">Extension</Label>
+                                                <Input
+                                                  id="edit-extension"
+                                                  value={editingUser.extension}
+                                                  onChange={(e) => setEditingUser(prev => prev ? { ...prev, extension: e.target.value } : null)}
+                                                  required
+                                                />
+                                              </div>
+                                            </div>
+                                            <div>
+                                              <Label htmlFor="edit-userType">User Type</Label>
+                                              <Select
+                                                value={editingUser.userType}
+                                                onValueChange={(value: 'admin' | 'manager' | 'user') => 
+                                                  setEditingUser(prev => prev ? { ...prev, userType: value } : null)
+                                                }
+                                              >
+                                                <SelectTrigger>
+                                                  <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  <SelectItem value="admin">Administrator</SelectItem>
+                                                  <SelectItem value="manager">Manager</SelectItem>
+                                                  <SelectItem value="user">User</SelectItem>
+                                                </SelectContent>
+                                              </Select>
+                                            </div>
+                                            <div className="flex justify-end space-x-2">
+                                              <Button type="button" variant="outline" onClick={() => setEditingUser(null)}>
+                                                Cancel
+                                              </Button>
+                                              <Button type="submit" disabled={updateUserMutation.isPending}>
+                                                {updateUserMutation.isPending ? "Updating..." : "Update User"}
+                                              </Button>
+                                            </div>
+                                          </form>
+                                        )}
+                                      </DialogContent>
+                                    </Dialog>
+                                    {user.id !== currentUser?.id && (
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="text-primary hover:text-blue-900"
-                                        onClick={() => setEditingUser(user)}
+                                        className="text-red-600 hover:text-red-800"
+                                        onClick={() => handleDeleteUser(user.id, user.fullName)}
+                                        disabled={deleteUserMutation.isPending}
                                       >
-                                        <Edit className="h-4 w-4" />
+                                        <Trash2 className="h-4 w-4" />
                                       </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="sm:max-w-md">
-                                      <DialogHeader>
-                                        <DialogTitle>Edit User</DialogTitle>
-                                      </DialogHeader>
-                                      {editingUser && (
-                                        <form onSubmit={handleUpdateUser} className="space-y-4">
-                                          <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                              <Label htmlFor="edit-fullName">Full Name</Label>
-                                              <Input
-                                                id="edit-fullName"
-                                                value={editingUser.fullName}
-                                                onChange={(e) => setEditingUser(prev => prev ? { ...prev, fullName: e.target.value } : null)}
-                                                required
-                                              />
-                                            </div>
-                                            <div>
-                                              <Label htmlFor="edit-email">Email</Label>
-                                              <Input
-                                                id="edit-email"
-                                                type="email"
-                                                value={editingUser.email}
-                                                onChange={(e) => setEditingUser(prev => prev ? { ...prev, email: e.target.value } : null)}
-                                                required
-                                              />
-                                            </div>
-                                          </div>
-                                          <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                              <Label htmlFor="edit-phone">Phone</Label>
-                                              <Input
-                                                id="edit-phone"
-                                                value={editingUser.phone}
-                                                onChange={(e) => setEditingUser(prev => prev ? { ...prev, phone: e.target.value } : null)}
-                                                required
-                                              />
-                                            </div>
-                                            <div>
-                                              <Label htmlFor="edit-extension">Extension</Label>
-                                              <Input
-                                                id="edit-extension"
-                                                value={editingUser.extension}
-                                                onChange={(e) => setEditingUser(prev => prev ? { ...prev, extension: e.target.value } : null)}
-                                                required
-                                              />
-                                            </div>
-                                          </div>
-                                          <div>
-                                            <Label htmlFor="edit-userType">User Type</Label>
-                                            <Select
-                                              value={editingUser.userType}
-                                              onValueChange={(value: 'admin' | 'manager' | 'user') => 
-                                                setEditingUser(prev => prev ? { ...prev, userType: value } : null)
-                                              }
-                                            >
-                                              <SelectTrigger>
-                                                <SelectValue />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="admin">Administrator</SelectItem>
-                                                <SelectItem value="manager">Manager</SelectItem>
-                                                <SelectItem value="user">User</SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                          <div className="flex justify-end space-x-2">
-                                            <Button type="button" variant="outline" onClick={() => setEditingUser(null)}>
-                                              Cancel
-                                            </Button>
-                                            <Button type="submit" disabled={updateUserMutation.isPending}>
-                                              {updateUserMutation.isPending ? "Updating..." : "Update User"}
-                                            </Button>
-                                          </div>
-                                        </form>
-                                      )}
-                                    </DialogContent>
-                                  </Dialog>
-                                  {user.id !== currentUser.id && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-error hover:text-red-900"
-                                      onClick={() => handleDeleteUser(user.id, user.fullName)}
-                                      disabled={deleteUserMutation.isPending}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  )}
-                                </td>
-                              )}
+                                    )}
+                                  </div>
+                                )}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
