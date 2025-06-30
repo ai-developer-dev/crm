@@ -81,17 +81,17 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 const isActive = location === item.href;
                 
                 return (
-                  <Link key={item.name} href={item.href}>
-                    <a
-                      className={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                        isActive
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
-                      }`}
-                    >
-                      <Icon className="mr-3 h-4 w-4" />
-                      {item.name}
-                    </a>
+                  <Link 
+                    key={item.name} 
+                    href={item.href}
+                    className={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      isActive
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                    }`}
+                  >
+                    <Icon className="mr-3 h-4 w-4" />
+                    {item.name}
                   </Link>
                 );
               })}

@@ -29,15 +29,11 @@ const authenticateToken = async (req: any, res: any, next: any) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const session = await storage.getValidSession(decoded.sessionId);
     
-    if (!session) {
+    // Get user from database to ensure they still exist and are active
+    const user = await storage.getUser(decoded.userId);
+    if (!user || !user.isActive) {
       return res.status(401).json({ message: 'Invalid or expired session' });
-    }
-
-    const user = await storage.getUser(session.userId);
-    if (!user) {
-      return res.status(401).json({ message: 'User not found' });
     }
 
     req.user = {
@@ -83,23 +79,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      // Create session
-      const sessionToken = jwt.sign({ userId: user.id }, JWT_SECRET);
-      const sessionHash = await bcrypt.hash(sessionToken, 10);
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-
-      const session = await storage.createSession(user.id, sessionHash, expiresAt);
-      
-      // Create JWT with session ID
+      // Create JWT token
       const token = jwt.sign(
         { 
-          userId: user.id, 
-          sessionId: session.id,
-          userType: user.userType 
+          userId: user.id,
+          userType: user.userType,
+          email: user.email
         },
         JWT_SECRET,
         { expiresIn: JWT_EXPIRES_IN }
       );
+
+      // Create session with token hash for tracking
+      const tokenHash = await bcrypt.hash(token, 10);
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      await storage.createSession(user.id, tokenHash, expiresAt);
 
       res.json({
         token,
@@ -123,14 +117,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Logout endpoint
   app.post("/api/auth/logout", authenticateToken, async (req: any, res) => {
     try {
-      const authHeader = req.headers['authorization'];
-      const token = authHeader && authHeader.split(' ')[1];
-      
-      if (token) {
-        const decoded = jwt.verify(token, JWT_SECRET) as any;
-        await storage.deleteSession(decoded.sessionId);
-      }
-      
+      // Delete all user sessions for complete logout
+      await storage.deleteUserSessions(req.user.id);
       res.json({ message: "Logged out successfully" });
     } catch (error) {
       console.error("Logout error:", error);
