@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { insertUserSchema, loginSchema } from "@shared/schema";
 import bcrypt from "bcrypt";
@@ -239,16 +240,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         passwordHash,
       });
 
+      const userResponse = {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        userType: user.userType,
+        extension: user.extension,
+        phone: user.phone,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+      };
+
+      // Broadcast to all admin/manager users about new user creation
+      if ((app as any).broadcast) {
+        (app as any).broadcast.toRole({
+          type: 'user_created',
+          user: userResponse,
+          message: `New user ${user.fullName} has been created`
+        }, ['admin', 'manager']);
+      }
+
       res.status(201).json({
         message: "User created successfully",
-        user: {
-          id: user.id,
-          fullName: user.fullName,
-          email: user.email,
-          userType: user.userType,
-          extension: user.extension,
-          phone: user.phone,
-        },
+        user: userResponse,
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -274,16 +288,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
+      const userResponse = {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        userType: user.userType,
+        extension: user.extension,
+        phone: user.phone,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+      };
+
+      // Broadcast to all admin/manager users about user update
+      if ((app as any).broadcast) {
+        (app as any).broadcast.toRole({
+          type: 'user_updated',
+          user: userResponse,
+          message: `User ${user.fullName} has been updated`
+        }, ['admin', 'manager']);
+      }
+
       res.json({
         message: "User updated successfully",
-        user: {
-          id: user.id,
-          fullName: user.fullName,
-          email: user.email,
-          userType: user.userType,
-          extension: user.extension,
-          phone: user.phone,
-        },
+        user: userResponse,
       });
     } catch (error) {
       console.error("Update user error:", error);
@@ -309,6 +336,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Delete all user sessions
       await storage.deleteUserSessions(userId);
 
+      // Broadcast to all admin/manager users about user deletion
+      if ((app as any).broadcast) {
+        (app as any).broadcast.toRole({
+          type: 'user_deleted',
+          userId: userId,
+          message: `User has been deleted`
+        }, ['admin', 'manager']);
+      }
+
       res.json({ message: "User deleted successfully" });
     } catch (error) {
       console.error("Delete user error:", error);
@@ -317,5 +353,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+
+  // WebSocket server for real-time features
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/ws'
+  });
+
+  // Store connected clients with user info
+  const connectedClients = new Map<WebSocket, { userId: number; userType: string }>();
+
+  wss.on('connection', async (ws, req) => {
+    console.log('WebSocket connection established');
+
+    // Handle authentication
+    ws.on('message', async (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        
+        if (message.type === 'auth') {
+          // Authenticate user via JWT token
+          const token = message.token;
+          if (!token) {
+            ws.send(JSON.stringify({ type: 'auth_error', message: 'Token required' }));
+            return;
+          }
+
+          try {
+            const decoded = jwt.verify(token, JWT_SECRET) as any;
+            const user = await storage.getUser(decoded.userId);
+            
+            if (!user || !user.isActive) {
+              ws.send(JSON.stringify({ type: 'auth_error', message: 'Invalid user' }));
+              return;
+            }
+
+            // Store client info
+            connectedClients.set(ws, { 
+              userId: user.id, 
+              userType: user.userType 
+            });
+
+            ws.send(JSON.stringify({ 
+              type: 'auth_success', 
+              userId: user.id,
+              userType: user.userType
+            }));
+
+            console.log(`User ${user.fullName} connected via WebSocket`);
+          } catch (error) {
+            ws.send(JSON.stringify({ type: 'auth_error', message: 'Invalid token' }));
+          }
+        }
+      } catch (error) {
+        console.error('WebSocket message error:', error);
+      }
+    });
+
+    ws.on('close', () => {
+      const clientInfo = connectedClients.get(ws);
+      if (clientInfo) {
+        console.log(`User ${clientInfo.userId} disconnected from WebSocket`);
+        connectedClients.delete(ws);
+      }
+    });
+
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+      connectedClients.delete(ws);
+    });
+  });
+
+  // Helper function to broadcast to all authenticated clients
+  const broadcastToAll = (message: any) => {
+    connectedClients.forEach((clientInfo, ws) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(message));
+      }
+    });
+  };
+
+  // Helper function to broadcast to specific user types
+  const broadcastToRole = (message: any, roles: string[]) => {
+    connectedClients.forEach((clientInfo, ws) => {
+      if (ws.readyState === WebSocket.OPEN && roles.includes(clientInfo.userType)) {
+        ws.send(JSON.stringify(message));
+      }
+    });
+  };
+
+  // Store broadcast functions on the app for use in other routes
+  (app as any).broadcast = {
+    toAll: broadcastToAll,
+    toRole: broadcastToRole,
+    connectedClients
+  };
+
   return httpServer;
 }

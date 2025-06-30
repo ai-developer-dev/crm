@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -9,11 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserPlus, Edit, Trash2, Settings as SettingsIcon, Users, Key } from "lucide-react";
+import { UserPlus, Edit, Trash2, Settings as SettingsIcon, Users, Key, Wifi, WifiOff } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useWebSocket } from "@/hooks/use-websocket";
 
 interface User {
   id: number;
@@ -39,6 +40,7 @@ interface CreateUserForm {
 export default function Settings() {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
+  const { isConnected, lastMessage } = useWebSocket();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [createUserForm, setCreateUserForm] = useState<CreateUserForm>({
@@ -181,6 +183,48 @@ export default function Settings() {
     }
   };
 
+  // Handle real-time WebSocket messages
+  useEffect(() => {
+    if (lastMessage) {
+      switch (lastMessage.type) {
+        case 'user_created':
+          // Refresh user list and show notification
+          queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+          toast({
+            title: "User Created",
+            description: lastMessage.message,
+          });
+          break;
+        
+        case 'user_updated':
+          // Refresh user list and show notification
+          queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+          toast({
+            title: "User Updated", 
+            description: lastMessage.message,
+          });
+          break;
+        
+        case 'user_deleted':
+          // Refresh user list and show notification
+          queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+          toast({
+            title: "User Deleted",
+            description: lastMessage.message,
+          });
+          break;
+        
+        case 'auth_success':
+          console.log('WebSocket authenticated successfully');
+          break;
+        
+        case 'auth_error':
+          console.error('WebSocket authentication failed:', lastMessage.message);
+          break;
+      }
+    }
+  }, [lastMessage, queryClient, toast]);
+
   const getUserTypeColor = (userType: string) => {
     switch (userType) {
       case 'admin':
@@ -198,8 +242,25 @@ export default function Settings() {
     <DashboardLayout>
       <div className="p-6">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-800">Settings</h1>
-          <p className="text-slate-600">Manage your system settings and users</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-800">Settings</h1>
+              <p className="text-slate-600">Manage your system settings and users</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              {isConnected ? (
+                <div className="flex items-center space-x-1 text-green-600">
+                  <Wifi className="h-4 w-4" />
+                  <span className="text-sm">Real-time</span>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-1 text-gray-400">
+                  <WifiOff className="h-4 w-4" />
+                  <span className="text-sm">Offline</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         <Tabs defaultValue="users" className="space-y-6">

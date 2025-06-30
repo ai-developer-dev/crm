@@ -121,9 +121,25 @@ This is a full-stack VoIP CRM (Customer Relationship Management) system built wi
 4. Static files served in production mode
 5. Vite development server in development mode
 
+## Real-time Features
+
+### WebSocket Implementation
+- **Real-time User Management**: Live updates when users are created, updated, or deleted
+- **Connection Status Indicator**: Visual indicator showing WebSocket connection status
+- **Role-based Broadcasting**: Admin/Manager users receive real-time notifications
+- **Automatic Reconnection**: Handles connection drops with exponential backoff
+- **Authentication Integration**: WebSocket connections authenticated via JWT tokens
+
+### WebSocket API Events
+- `user_created`: Broadcast when new users are added
+- `user_updated`: Broadcast when user details are modified
+- `user_deleted`: Broadcast when users are removed
+- `auth_success`/`auth_error`: Authentication status messages
+
 ## Changelog
 
 - June 30, 2025. Initial setup
+- June 30, 2025. Added real-time WebSocket functionality for live user management updates
 
 ## User Preferences
 
