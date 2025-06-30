@@ -474,16 +474,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // TwiML endpoint for handling incoming calls
   app.post("/api/twilio/voice", async (req, res) => {
     try {
+      console.log('Incoming call webhook received:', req.body);
+      
       const twiml = new twilio.twiml.VoiceResponse();
       
-      // Dial to the appropriate user based on the incoming number
+      // Dial to all connected clients using their extension/identity
       const dial = twiml.dial({
         answerOnBridge: true,
         timeLimit: 3600,
       });
       
-      // This will ring all connected clients
-      dial.client('incoming-call');
+      // Dial the specific user identity (extension "100" in this case)
+      // This should match the identity used when generating the access token
+      dial.client('100');
+      
+      console.log('TwiML response:', twiml.toString());
       
       res.type('text/xml');
       res.send(twiml.toString());

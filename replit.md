@@ -136,10 +136,32 @@ This is a full-stack VoIP CRM (Customer Relationship Management) system built wi
 - `user_deleted`: Broadcast when users are removed
 - `auth_success`/`auth_error`: Authentication status messages
 
+## VoIP Calling Features
+
+### Twilio Integration
+- **Device Registration**: Automatic Twilio Device initialization with JWT access tokens
+- **Incoming Call Handling**: Real-time popup interface with caller ID display
+- **Call Management**: Answer, reject, and hang-up functionality with keyboard shortcuts
+- **Connection Status**: Live VoIP connection indicator in dashboard
+- **Call Logging**: Backend endpoints for tracking call events and duration
+
+### Call Flow Architecture
+1. **Token Generation**: Backend generates Twilio access tokens using stored credentials
+2. **Device Registration**: Frontend initializes Twilio Device with user extension as identity
+3. **Incoming Calls**: TwiML webhook routes calls to connected clients via extension ID
+4. **Call Display**: Popup overlays show caller information with action buttons
+5. **Active Calls**: Persistent call status display with duration timer
+
+### Deployment Requirements
+- **Public Webhook**: TwiML App must point to deployed URL for incoming calls
+- **Real-time Connection**: WebSocket maintains live call state synchronization
+- **Audio Permissions**: Browser media permissions required for call audio
+
 ## Changelog
 
 - June 30, 2025. Initial setup
 - June 30, 2025. Added real-time WebSocket functionality for live user management updates
+- June 30, 2025. Implemented comprehensive VoIP calling system with Twilio integration
 
 ## User Preferences
 
