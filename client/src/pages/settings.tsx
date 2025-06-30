@@ -37,6 +37,17 @@ interface CreateUserForm {
   confirmPassword: string;
 }
 
+interface TwilioCredentials {
+  id?: number;
+  accountSid: string;
+  apiKey: string;
+  apiSecret: string;
+  twimlAppSid: string;
+  phoneNumber: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export default function Settings() {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
@@ -51,6 +62,13 @@ export default function Settings() {
     userType: "",
     password: "",
     confirmPassword: "",
+  });
+  const [twilioForm, setTwilioForm] = useState<TwilioCredentials>({
+    accountSid: "",
+    apiKey: "",
+    apiSecret: "",
+    twimlAppSid: "",
+    phoneNumber: "",
   });
 
   const { data: users, isLoading } = useQuery<User[]>({
@@ -136,6 +154,32 @@ export default function Settings() {
     },
   });
 
+  // Twilio credentials query and mutation
+  const { data: twilioCredentials, refetch: refetchTwilio } = useQuery({
+    queryKey: ['/api/twilio/credentials'],
+    enabled: currentUser?.userType === 'admin',
+  });
+
+  const saveTwilioMutation = useMutation({
+    mutationFn: async (credentialsData: TwilioCredentials) => {
+      await apiRequest('POST', '/api/twilio/credentials', credentialsData);
+    },
+    onSuccess: () => {
+      refetchTwilio();
+      toast({
+        title: "Success", 
+        description: "Twilio credentials saved successfully!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save Twilio credentials",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateUser = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -182,6 +226,24 @@ export default function Settings() {
       deleteUserMutation.mutate(userId);
     }
   };
+
+  const handleSaveTwilioCredentials = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveTwilioMutation.mutate(twilioForm);
+  };
+
+  // Load existing Twilio credentials when component mounts
+  useEffect(() => {
+    if (twilioCredentials?.credentials) {
+      setTwilioForm({
+        accountSid: twilioCredentials.credentials.accountSid || "",
+        apiKey: twilioCredentials.credentials.apiKey || "",
+        apiSecret: "", // Never pre-fill the secret for security
+        twimlAppSid: twilioCredentials.credentials.twimlAppSid || "",
+        phoneNumber: twilioCredentials.credentials.phoneNumber || "",
+      });
+    }
+  }, [twilioCredentials]);
 
   // Handle real-time WebSocket messages
   useEffect(() => {
@@ -264,10 +326,14 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               User Management
+            </TabsTrigger>
+            <TabsTrigger value="twilio" className="flex items-center gap-2">
+              <Key className="h-4 w-4" />
+              Twilio Setup
             </TabsTrigger>
             <TabsTrigger value="system" className="flex items-center gap-2">
               <SettingsIcon className="h-4 w-4" />
@@ -566,6 +632,116 @@ export default function Settings() {
                       </table>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="twilio" className="space-y-6">
+            {currentUser?.userType === 'admin' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Twilio Credentials</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Configure your Twilio account credentials for VoIP functionality
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSaveTwilioCredentials} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="accountSid">Account SID</Label>
+                        <Input
+                          id="accountSid"
+                          value={twilioForm.accountSid}
+                          onChange={(e) => setTwilioForm(prev => ({ ...prev, accountSid: e.target.value }))}
+                          placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                          required
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Your Twilio Account SID (starts with AC)
+                        </p>
+                      </div>
+                      <div>
+                        <Label htmlFor="apiKey">API Key SID</Label>
+                        <Input
+                          id="apiKey"
+                          value={twilioForm.apiKey}
+                          onChange={(e) => setTwilioForm(prev => ({ ...prev, apiKey: e.target.value }))}
+                          placeholder="SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                          required
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Your Twilio API Key SID (starts with SK)
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="apiSecret">API Secret</Label>
+                        <Input
+                          id="apiSecret"
+                          type="password"
+                          value={twilioForm.apiSecret}
+                          onChange={(e) => setTwilioForm(prev => ({ ...prev, apiSecret: e.target.value }))}
+                          placeholder="Your API Secret"
+                          required
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Your Twilio API Secret (keep this secure)
+                        </p>
+                      </div>
+                      <div>
+                        <Label htmlFor="twimlAppSid">TwiML App SID</Label>
+                        <Input
+                          id="twimlAppSid"
+                          value={twilioForm.twimlAppSid}
+                          onChange={(e) => setTwilioForm(prev => ({ ...prev, twimlAppSid: e.target.value }))}
+                          placeholder="APxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                          required
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Your TwiML Application SID (starts with AP)
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="phoneNumber">Twilio Phone Number</Label>
+                      <Input
+                        id="phoneNumber"
+                        value={twilioForm.phoneNumber}
+                        onChange={(e) => setTwilioForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                        placeholder="+1234567890"
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Your Twilio phone number in E.164 format (e.g. +1234567890)
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center justify-between pt-4">
+                      <div className="text-sm text-muted-foreground">
+                        {twilioCredentials?.credentials ? (
+                          <span className="text-green-600">✓ Credentials configured</span>
+                        ) : (
+                          <span className="text-amber-600">⚠ No credentials configured</span>
+                        )}
+                      </div>
+                      <Button type="submit" disabled={saveTwilioMutation.isPending}>
+                        {saveTwilioMutation.isPending ? "Saving..." : "Save Credentials"}
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
+            
+            {currentUser?.userType !== 'admin' && (
+              <Card>
+                <CardContent className="text-center py-8">
+                  <p className="text-muted-foreground">Only administrators can configure Twilio credentials.</p>
                 </CardContent>
               </Card>
             )}

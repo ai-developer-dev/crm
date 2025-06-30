@@ -1,4 +1,4 @@
-import { users, userSessions, callLogs, contacts, type User, type InsertUser, type UserSession } from "@shared/schema";
+import { users, userSessions, callLogs, contacts, twilioCredentials, type User, type InsertUser, type UserSession, type TwilioCredentials, type InsertTwilioCredentials } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gt } from "drizzle-orm";
 
@@ -17,6 +17,11 @@ export interface IStorage {
   getValidSession(tokenHash: string): Promise<UserSession | undefined>;
   deleteSession(tokenHash: string): Promise<boolean>;
   deleteUserSessions(userId: number): Promise<boolean>;
+  
+  // Twilio credentials methods
+  getTwilioCredentials(): Promise<TwilioCredentials | undefined>;
+  createTwilioCredentials(credentials: InsertTwilioCredentials): Promise<TwilioCredentials>;
+  updateTwilioCredentials(id: number, credentials: Partial<InsertTwilioCredentials>): Promise<TwilioCredentials | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -109,6 +114,31 @@ export class DatabaseStorage implements IStorage {
       .where(eq(userSessions.userId, userId))
       .returning();
     return result.length > 0;
+  }
+
+  async getTwilioCredentials(): Promise<TwilioCredentials | undefined> {
+    const [credentials] = await db.select().from(twilioCredentials).limit(1);
+    return credentials || undefined;
+  }
+
+  async createTwilioCredentials(credentialsData: InsertTwilioCredentials): Promise<TwilioCredentials> {
+    // First delete any existing credentials (we only want one set)
+    await db.delete(twilioCredentials);
+    
+    const [credentials] = await db
+      .insert(twilioCredentials)
+      .values(credentialsData)
+      .returning();
+    return credentials;
+  }
+
+  async updateTwilioCredentials(id: number, credentialsData: Partial<InsertTwilioCredentials>): Promise<TwilioCredentials | undefined> {
+    const [credentials] = await db
+      .update(twilioCredentials)
+      .set({ ...credentialsData, updatedAt: new Date() })
+      .where(eq(twilioCredentials.id, id))
+      .returning();
+    return credentials || undefined;
   }
 }
 

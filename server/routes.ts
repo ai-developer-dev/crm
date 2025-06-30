@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { insertUserSchema, loginSchema } from "@shared/schema";
+import { insertUserSchema, loginSchema, insertTwilioCredentialsSchema } from "@shared/schema";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
@@ -348,6 +348,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "User deleted successfully" });
     } catch (error) {
       console.error("Delete user error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get Twilio credentials (admin only)
+  app.get("/api/twilio/credentials", authenticateToken, requireRole(['admin']), async (req, res) => {
+    try {
+      const credentials = await storage.getTwilioCredentials();
+      if (!credentials) {
+        return res.json({ credentials: null });
+      }
+      
+      // Don't send sensitive data to frontend
+      const safeCredentials = {
+        id: credentials.id,
+        accountSid: credentials.accountSid,
+        apiKey: credentials.apiKey,
+        apiSecret: '***masked***', // Don't send secret to frontend
+        twimlAppSid: credentials.twimlAppSid,
+        phoneNumber: credentials.phoneNumber,
+        createdAt: credentials.createdAt,
+        updatedAt: credentials.updatedAt,
+      };
+      
+      res.json({ credentials: safeCredentials });
+    } catch (error) {
+      console.error("Get Twilio credentials error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Save/Update Twilio credentials (admin only)
+  app.post("/api/twilio/credentials", authenticateToken, requireRole(['admin']), async (req, res) => {
+    try {
+      const validatedData = insertTwilioCredentialsSchema.parse(req.body);
+      
+      const existingCredentials = await storage.getTwilioCredentials();
+      let credentials;
+      
+      if (existingCredentials) {
+        credentials = await storage.updateTwilioCredentials(existingCredentials.id, validatedData);
+      } else {
+        credentials = await storage.createTwilioCredentials(validatedData);
+      }
+      
+      if (!credentials) {
+        return res.status(500).json({ message: "Failed to save credentials" });
+      }
+      
+      // Don't send sensitive data to frontend
+      const safeCredentials = {
+        id: credentials.id,
+        accountSid: credentials.accountSid,
+        apiKey: credentials.apiKey,
+        apiSecret: '***masked***',
+        twimlAppSid: credentials.twimlAppSid,
+        phoneNumber: credentials.phoneNumber,
+        createdAt: credentials.createdAt,
+        updatedAt: credentials.updatedAt,
+      };
+      
+      res.json({ 
+        message: "Twilio credentials saved successfully",
+        credentials: safeCredentials 
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      console.error("Save Twilio credentials error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

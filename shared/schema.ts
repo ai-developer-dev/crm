@@ -48,6 +48,17 @@ export const contacts = pgTable("contacts", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const twilioCredentials = pgTable("twilio_credentials", {
+  id: serial("id").primaryKey(),
+  accountSid: text("account_sid").notNull(),
+  apiKey: text("api_key").notNull(),
+  apiSecret: text("api_secret").notNull(),
+  twimlAppSid: text("twiml_app_sid").notNull(),
+  phoneNumber: text("phone_number").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(userSessions),
   callLogs: many(callLogs),
@@ -95,9 +106,23 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+export const insertTwilioCredentialsSchema = createInsertSchema(twilioCredentials, {
+  accountSid: z.string().min(34).max(34),
+  apiKey: z.string().min(34).max(34),
+  apiSecret: z.string().min(32),
+  twimlAppSid: z.string().min(34).max(34),
+  phoneNumber: z.string().min(10),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type UserSession = typeof userSessions.$inferSelect;
 export type CallLog = typeof callLogs.$inferSelect;
 export type Contact = typeof contacts.$inferSelect;
+export type TwilioCredentials = typeof twilioCredentials.$inferSelect;
+export type InsertTwilioCredentials = z.infer<typeof insertTwilioCredentialsSchema>;
 export type LoginData = z.infer<typeof loginSchema>;
