@@ -162,6 +162,7 @@ This is a full-stack VoIP CRM (Customer Relationship Management) system built wi
 - June 30, 2025. Initial setup
 - June 30, 2025. Added real-time WebSocket functionality for live user management updates
 - June 30, 2025. Implemented comprehensive VoIP calling system with Twilio integration
+- June 30, 2025. Added live call status display in user cards with real-time updates and multi-user support
 
 ## User Preferences
 

@@ -482,15 +482,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const twiml = new twilio.twiml.VoiceResponse();
       
-      // Dial to all connected clients using their extension/identity
+      // Get all active users to dial
+      const activeUsers = await storage.getAllUsers();
+      const availableUsers = activeUsers.filter(user => user.isActive);
+      
+      if (availableUsers.length === 0) {
+        twiml.say('Sorry, no one is available to take your call at this time.');
+        res.type('text/xml');
+        res.send(twiml.toString());
+        return;
+      }
+      
+      // Dial to all available users simultaneously
       const dial = twiml.dial({
         answerOnBridge: true,
         timeLimit: 3600,
       });
       
-      // Dial the specific user identity (extension "100" in this case)
-      // This should match the identity used when generating the access token
-      dial.client('100');
+      // Add each active user's extension as a client target
+      availableUsers.forEach(user => {
+        dial.client(user.extension);
+        console.log(`Added client ${user.extension} (${user.fullName}) to dial queue`);
+      });
       
       console.log('TwiML response:', twiml.toString());
       

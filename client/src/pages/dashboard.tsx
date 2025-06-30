@@ -2,12 +2,13 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Users, Phone, Crown, User, Shield, Wifi, WifiOff } from "lucide-react";
+import { Users, Phone, Crown, User, Shield, Wifi, WifiOff, PhoneOff } from "lucide-react";
 import { useTwilioDevice } from "@/hooks/use-twilio-device";
 import { IncomingCallPopup } from "@/components/incoming-call-popup";
 import { useEffect } from "react";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 interface DashboardUser {
   id: number;
@@ -30,6 +31,7 @@ export default function Dashboard() {
   });
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
 
   // Initialize VoIP functionality
   const { callState, answerCall, rejectCall, hangUpCall } = useTwilioDevice();
@@ -279,9 +281,21 @@ export default function Dashboard() {
                                       On call with {formatPhoneNumber(user.currentCallerNumber)}
                                     </span>
                                   </div>
-                                  <Badge className="bg-green-100 text-green-800 text-xs">
-                                    {getCallDuration(user.currentCallStartTime)}
-                                  </Badge>
+                                  <div className="flex items-center space-x-2">
+                                    <Badge className="bg-green-100 text-green-800 text-xs">
+                                      {getCallDuration(user.currentCallStartTime)}
+                                    </Badge>
+                                    {/* Show hangup button only for current user's own card */}
+                                    {currentUser?.id === user.id && (
+                                      <button
+                                        onClick={() => hangUpCall()}
+                                        className="flex items-center justify-center w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors duration-200"
+                                        title="Hang up call"
+                                      >
+                                        <PhoneOff className="h-3 w-3" />
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
                                 <div className="text-xs text-green-600 mt-1">
                                   {user.currentCallDirection === 'inbound' ? 'Incoming' : 'Outgoing'} call
