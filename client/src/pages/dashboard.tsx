@@ -2,7 +2,10 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
-import { Users, Phone, Crown, User, Shield } from "lucide-react";
+import { Users, Phone, Crown, User, Shield, Wifi, WifiOff } from "lucide-react";
+import { useTwilioDevice } from "@/hooks/use-twilio-device";
+import { IncomingCallPopup, ActiveCallDisplay } from "@/components/incoming-call-popup";
+import { useEffect } from "react";
 
 interface DashboardUser {
   id: number;
@@ -19,6 +22,27 @@ export default function Dashboard() {
   const { data: users = [], isLoading } = useQuery<DashboardUser[]>({
     queryKey: ['/api/users'],
   });
+
+  // Initialize VoIP functionality
+  const { callState, answerCall, rejectCall, hangUpCall } = useTwilioDevice();
+
+  // Handle keyboard shortcuts for call management
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (callState.incomingCall) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          answerCall();
+        } else if (event.key === 'Escape') {
+          event.preventDefault();
+          rejectCall();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [callState.incomingCall, answerCall, rejectCall]);
 
   const getUserTypeColor = (userType: string) => {
     switch (userType) {
@@ -64,8 +88,25 @@ export default function Dashboard() {
     <DashboardLayout>
       <div className="p-6">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-800">Dashboard Overview</h1>
-          <p className="text-slate-600">Welcome back! Here's your team overview.</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-800">Dashboard Overview</h1>
+              <p className="text-slate-600">Welcome back! Here's your team overview.</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              {callState.isConnected ? (
+                <div className="flex items-center space-x-1 text-green-600">
+                  <Wifi className="h-4 w-4" />
+                  <span className="text-sm">VoIP Connected</span>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-1 text-gray-400">
+                  <WifiOff className="h-4 w-4" />
+                  <span className="text-sm">VoIP Offline</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -183,6 +224,22 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* VoIP Call Components */}
+      {callState.incomingCall && (
+        <IncomingCallPopup
+          call={callState.incomingCall}
+          onAnswer={answerCall}
+          onReject={rejectCall}
+        />
+      )}
+
+      {callState.activeCall && (
+        <ActiveCallDisplay
+          call={callState.activeCall}
+          onHangUp={hangUpCall}
+        />
+      )}
     </DashboardLayout>
   );
 }

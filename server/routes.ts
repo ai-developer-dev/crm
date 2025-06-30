@@ -6,6 +6,7 @@ import { insertUserSchema, loginSchema, insertTwilioCredentialsSchema } from "@s
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
+import twilio from "twilio";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-super-secure-jwt-secret-key";
 const JWT_EXPIRES_IN = "7d";
@@ -422,6 +423,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error("Save Twilio credentials error:", error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Generate Twilio access token for VoIP client
+  app.post("/api/twilio/token", authenticateToken, async (req, res) => {
+    try {
+      const { identity } = req.body;
+      
+      if (!identity) {
+        return res.status(400).json({ message: "Identity is required" });
+      }
+
+      // Get Twilio credentials from database
+      const credentials = await storage.getTwilioCredentials();
+      if (!credentials) {
+        return res.status(404).json({ message: "Twilio credentials not configured" });
+      }
+
+      // Initialize Twilio client
+      const AccessToken = twilio.jwt.AccessToken;
+      const VoiceGrant = AccessToken.VoiceGrant;
+
+      // Create access token
+      const accessToken = new AccessToken(
+        credentials.accountSid,
+        credentials.apiKey,
+        credentials.apiSecret,
+        { identity }
+      );
+
+      // Create voice grant
+      const voiceGrant = new VoiceGrant({
+        outgoingApplicationSid: credentials.twimlAppSid,
+        incomingAllow: true,
+      });
+
+      accessToken.addGrant(voiceGrant);
+
+      res.json({
+        token: accessToken.toJwt(),
+        identity,
+      });
+    } catch (error) {
+      console.error("Generate Twilio token error:", error);
+      res.status(500).json({ message: "Failed to generate access token" });
+    }
+  });
+
+  // TwiML endpoint for handling incoming calls
+  app.post("/api/twilio/voice", async (req, res) => {
+    try {
+      const twiml = new twilio.twiml.VoiceResponse();
+      
+      // Dial to the appropriate user based on the incoming number
+      const dial = twiml.dial({
+        answerOnBridge: true,
+        timeLimit: 3600,
+      });
+      
+      // This will ring all connected clients
+      dial.client('incoming-call');
+      
+      res.type('text/xml');
+      res.send(twiml.toString());
+    } catch (error) {
+      console.error("TwiML voice error:", error);
+      const twiml = new twilio.twiml.VoiceResponse();
+      twiml.say('Sorry, we are unable to complete your call at this time.');
+      res.type('text/xml');
+      res.send(twiml.toString());
+    }
+  });
+
+  // Log call events
+  app.post("/api/calls/log", authenticateToken, async (req, res) => {
+    try {
+      const { callSid, from, to, direction, status, duration } = req.body;
+      
+      // For now, just log the call event - in a real implementation,
+      // you would save this to the call_logs table
+      console.log('Call logged:', { callSid, from, to, direction, status, duration });
+      
+      res.json({ message: "Call logged successfully" });
+    } catch (error) {
+      console.error("Call logging error:", error);
+      res.status(500).json({ message: "Failed to log call" });
     }
   });
 
