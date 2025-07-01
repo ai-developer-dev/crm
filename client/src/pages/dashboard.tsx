@@ -168,10 +168,8 @@ export default function Dashboard() {
         {/* Calls Section */}
         <CallsSection
           incomingCall={callState.incomingCall}
-          activeCall={callState.activeCall}
           onAnswer={answerCall}
           onReject={rejectCall}
-          onHangUp={hangUpCall}
         />
 
         {/* User Cards */}
