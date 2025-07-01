@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Users, Phone, User, Shield, Wifi, WifiOff, PhoneOff, Crown } from "lucide-react";
 import { useTwilioDevice } from "@/hooks/use-twilio-device";
-import { IncomingCallPopup } from "@/components/incoming-call-popup";
+import { CallsSection } from "@/components/calls-section";
 import { useEffect } from "react";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { useToast } from "@/hooks/use-toast";
@@ -39,23 +39,7 @@ export default function Dashboard() {
   // Initialize WebSocket for real-time updates
   const { lastMessage, isConnected } = useWebSocket();
 
-  // Handle keyboard shortcuts for call management
-  useEffect(() => {
-    const handleKeyPress = (event: KeyboardEvent) => {
-      if (callState.incomingCall) {
-        if (event.key === 'Enter') {
-          event.preventDefault();
-          answerCall();
-        } else if (event.key === 'Escape') {
-          event.preventDefault();
-          rejectCall();
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [callState.incomingCall, answerCall, rejectCall]);
+  // Keyboard shortcuts are now handled in CallsSection component
 
   // Handle WebSocket call events
   useEffect(() => {
@@ -181,7 +165,14 @@ export default function Dashboard() {
           </div>
         </div>
 
-
+        {/* Calls Section */}
+        <CallsSection
+          incomingCall={callState.incomingCall}
+          activeCall={callState.activeCall}
+          onAnswer={answerCall}
+          onReject={rejectCall}
+          onHangUp={hangUpCall}
+        />
 
         {/* User Cards */}
         <Card>
@@ -272,14 +263,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* VoIP Call Components */}
-      {callState.incomingCall && (
-        <IncomingCallPopup
-          call={callState.incomingCall}
-          onAnswer={answerCall}
-          onReject={rejectCall}
-        />
-      )}
+
 
 
     </DashboardLayout>
