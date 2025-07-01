@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserPlus, Edit, Trash2, Settings as SettingsIcon, Users, Key, Wifi, WifiOff } from "lucide-react";
+import { UserPlus, Edit, Trash2, Settings as SettingsIcon, Users, Key, Wifi, WifiOff, Phone, Crown, Shield } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -346,6 +346,67 @@ export default function Settings() {
           </TabsList>
 
           <TabsContent value="users" className="space-y-6">
+            {/* Stats Cards - Only for Admin Users */}
+            {currentUser?.userType === 'admin' && users && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center">
+                      <div className="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                        <Users className="h-6 w-6 text-primary" />
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-slate-600">Total Users</p>
+                        <p className="text-2xl font-bold text-slate-800">{users.length}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center">
+                      <div className="h-12 w-12 bg-success/10 rounded-xl flex items-center justify-center">
+                        <Phone className="h-6 w-6 text-success" />
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-slate-600">Active Users</p>
+                        <p className="text-2xl font-bold text-slate-800">{users.filter(user => user.isActive).length}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center">
+                      <div className="h-12 w-12 bg-red-100 rounded-xl flex items-center justify-center">
+                        <Crown className="h-6 w-6 text-red-600" />
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-slate-600">Administrators</p>
+                        <p className="text-2xl font-bold text-slate-800">{users.filter(user => user.userType === 'admin').length}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center">
+                      <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                        <Shield className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-slate-600">Managers</p>
+                        <p className="text-2xl font-bold text-slate-800">{users.filter(user => user.userType === 'manager').length}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+            
             {(currentUser?.userType === 'admin' || currentUser?.userType === 'manager') && (
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">

@@ -2,7 +2,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Users, Phone, Crown, User, Shield, Wifi, WifiOff, PhoneOff } from "lucide-react";
+import { Users, Phone, User, Shield, Wifi, WifiOff, PhoneOff } from "lucide-react";
 import { useTwilioDevice } from "@/hooks/use-twilio-device";
 import { IncomingCallPopup } from "@/components/incoming-call-popup";
 import { useEffect } from "react";
@@ -155,11 +155,6 @@ export default function Dashboard() {
 
   // Sort users by ID to maintain consistent card positions
   const sortedUsers = [...users].sort((a, b) => a.id - b.id);
-  
-  const totalUsers = sortedUsers.length;
-  const activeUsers = sortedUsers.filter(user => user.isActive).length;
-  const adminCount = sortedUsers.filter(user => user.userType === 'admin').length;
-  const managerCount = sortedUsers.filter(user => user.userType === 'manager').length;
 
   return (
     <DashboardLayout>
@@ -186,64 +181,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                  <Users className="h-6 w-6 text-primary" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-slate-600">Total Users</p>
-                  <p className="text-2xl font-bold text-slate-800">{totalUsers}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="h-12 w-12 bg-success/10 rounded-xl flex items-center justify-center">
-                  <Phone className="h-6 w-6 text-success" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-slate-600">Active Users</p>
-                  <p className="text-2xl font-bold text-slate-800">{activeUsers}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="h-12 w-12 bg-red-100 rounded-xl flex items-center justify-center">
-                  <Crown className="h-6 w-6 text-red-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-slate-600">Administrators</p>
-                  <p className="text-2xl font-bold text-slate-800">{adminCount}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <Shield className="h-6 w-6 text-blue-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-slate-600">Managers</p>
-                  <p className="text-2xl font-bold text-slate-800">{managerCount}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+
 
         {/* User Cards */}
         <Card>
