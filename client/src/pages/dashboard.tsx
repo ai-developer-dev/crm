@@ -2,7 +2,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Users, Phone, User, Shield, Wifi, WifiOff, PhoneOff } from "lucide-react";
+import { Users, Phone, User, Shield, Wifi, WifiOff, PhoneOff, Crown } from "lucide-react";
 import { useTwilioDevice } from "@/hooks/use-twilio-device";
 import { IncomingCallPopup } from "@/components/incoming-call-popup";
 import { useEffect } from "react";
